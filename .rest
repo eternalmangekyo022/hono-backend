@@ -1,0 +1,27 @@
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsImhhaGEiOiJzdHJpbmcifQ.zc4OBKYuy-H0oOZPRLejQloa19I0uKofY92X0AaB_U4
+
+POST http://localhost:3000/users/register
+
+{
+  "firstName": "hellooo",
+  "lastName": "legolas",
+  "email": "edddse@esfesf.com",
+  "phone": "+363033434545543",
+  "password": "efsoieiohgioes"
+}
+
+###
+GET http://localhost:3000/users/__mock__
+Authorization: Bearer pankkixxx
+
+###
+GET http://localhost:3000/auth
+Cookie: access=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaGFoYSI6InN0cmluZyIsImV4cCI6MTc0NDA1NDkwMH0.KwkIJg3nvRWJtxHXp_FmnYiERTnkpU6ktZWMtl-rYtI
+
+###
+PATCH http://localhost:3000/auth/users/12
+Cookie: access={{token}}
+
+{
+  "firstName": "heyaaa"
+}

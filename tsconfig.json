@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "baseUrl": ".",
+    "strict": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "paths": {
+      "db": ["./models/db.ts"],
+      "schemas": ["./schemas.ts"],
+      "m/*": ["./models/*"],
+      "c/*": ["./controllers/*"],
+      "r/*": ["./routes/*"]
+    }
+  }
+}

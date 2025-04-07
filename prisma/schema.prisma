@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model amenities {
+  id             Int              @id @default(autoincrement())
+  amenity        String           @unique(map: "amenity") @db.VarChar(50)
+  img            String           @db.VarChar(100)
+  hotelamenities hotelamenities[]
+}
+
+model bookings {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  hotel_id     Int
+  booked       DateTime @db.DateTime(0)
+  checkin      DateTime @db.DateTime(0)
+  checkout     DateTime @db.DateTime(0)
+  payment_id   Int
+  participants Int?
+  rating       Int?     @default(0) @db.UnsignedInt
+  hotels       hotels   @relation(fields: [hotel_id], references: [id], onDelete: Cascade, map: "FK_bookings_hotel")
+  users        users    @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "FK_bookings_user")
+
+  @@index([hotel_id], map: "FK_bookings_hotel")
+  @@index([user_id], map: "FK_bookings_user")
+}
+
+model hotelamenities {
+  hotel_id   Int
+  amenity_id Int
+  amenities  amenities @relation(fields: [amenity_id], references: [id], onDelete: Cascade, map: "FK_hotelamenities_amenity")
+  hotels     hotels    @relation(fields: [hotel_id], references: [id], onDelete: Cascade, map: "FK_hotelamenities_hotel")
+
+  @@id([hotel_id, amenity_id])
+  @@index([amenity_id], map: "FK_hotelamenities_amenity")
+}
+
+model hotels {
+  id             Int              @id @default(autoincrement())
+  name           String           @db.VarChar(150)
+  price          Int
+  city           String           @db.VarChar(80)
+  class          Int
+  description    String           @db.VarChar(255)
+  capacity       Int
+  lat            Float
+  lon            Float
+  payment_id     Int              @default(1)
+  rooms          Int              @default(4)
+  bookings       bookings[]
+  hotelamenities hotelamenities[]
+  payments       payments         @relation(fields: [payment_id], references: [id], onDelete: NoAction, map: "FK_hotels_payment_id")
+  images         images[]
+
+  @@index([payment_id], map: "FK_hotels_payment_id")
+}
+
+model images {
+  id       Int    @id @default(autoincrement())
+  thumb    String @db.Text
+  full     String @db.Text
+  hotel_id Int
+  hotels   hotels @relation(fields: [hotel_id], references: [id], onDelete: Cascade, map: "FK_images_hotel_id")
+
+  @@index([hotel_id], map: "FK_images_hotel_id")
+}
+
+model payments {
+  id      Int      @id @default(autoincrement())
+  payment String   @db.VarChar(50)
+  hotels  hotels[]
+}
+
+model permissions {
+  id         Int     @id @default(autoincrement())
+  permission String  @db.VarChar(30)
+  users      users[]
+}
+
+model users {
+  id           Int         @id @default(autoincrement())
+  firstname    String      @db.VarChar(255)
+  lastname     String      @db.VarChar(255)
+  permissionId Int         @default(1)
+  phone        String      @db.VarChar(30)
+  email        String      @unique(map: "UK_users_email") @db.VarChar(50)
+  registered   DateTime    @default(dbgenerated("(curdate())")) @db.Date
+  password     String      @db.VarChar(32)
+  bookings     bookings[]
+  permissions  permissions @relation(fields: [permissionId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_users_permissionId")
+
+  @@index([permissionId], map: "FK_users_permissionId")
+}

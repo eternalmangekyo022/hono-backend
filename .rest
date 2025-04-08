@@ -1,12 +1,12 @@
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsImhhaGEiOiJzdHJpbmcifQ.zc4OBKYuy-H0oOZPRLejQloa19I0uKofY92X0AaB_U4
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTJ9.jNWB3i77ebmZNgccfbHcgXzT6ZXBYbf1GVie9Q8G4YM
 
 POST http://localhost:3000/users/register
 
 {
   "firstName": "hellooo",
   "lastName": "legolas",
-  "email": "edddse@esfesf.com",
-  "phone": "+363033434545543",
+  "email": "edddsefefes@esfesf.com",
+  "phone": "+36303314545543",
   "password": "efsoieiohgioes"
 }
 

@@ -1,76 +1,117 @@
 import prisma from 'db';
-import { sign, verify } from 'hono/jwt';
+import { sign } from 'hono/jwt';
+import { schemas } from 'schemas';
+import { z } from 'zod';
 
-export async function login() {}
-/* 
+export const login = z
+  .function()
+  .args(z.string().email(), z.string())
+  .returns(
+    z.promise(
+      schemas.user.extend({ permissionId: z.number(), registered: z.date() })
+    )
+  )
+  .implement(async (email, password) => {
+    const user = await prisma.users.findUniqueOrThrow({
+      where: {
+        email,
+        password: Buffer.from(Bun.MD5.hash(password).buffer).toString('hex'),
+      },
+      omit: {
+        password: true,
+      },
+    });
+
+    const { firstname, lastname, ...rest } = {
+      ...user,
+      firstName: user.firstname,
+      lastName: user.lastname,
+    };
+
+    return rest;
+  });
+
 export const register = z
   .function()
   .args(
-    z.string({ required_error: 'Email is required' }).email(),
-    z
-      .string()
-      .min(8, 'Password has to be at least 8 characters')
-      .max(16, 'Password has to be at most 16 characters'),
-    z.string(),
-    z.string(),
-    z.string()
+    z.object({
+      email: z.string(),
+      password: z.string(),
+      firstName: z.string(),
+      lastName: z.string(),
+      phone: z.string(),
+    })
   )
   .returns(
     z.promise(
       z.object({
         access: z.string().jwt(),
         refresh: z.string().jwt(),
+        user: schemas.user.omit({ id: true }).extend({ password: z.string() }),
       })
     )
   )
-  .implement();
- */
+  .implement(async function register({
+    email,
+    firstName,
+    lastName,
+    password,
+    phone,
+  }) {
+    let user;
+    try {
+      user = await prisma.users.create({
+        data: {
+          firstname: firstName,
+          email,
+          lastname: lastName,
+          password: Buffer.from(Bun.MD5.hash(password).buffer).toString('hex'),
+          phone,
+        },
+      });
+    } catch (e) {
+      switch ((e as { code: string }).code) {
+        case 'P2002': {
+          throw 'User already exists';
+        }
+        case 'P2003': {
+          throw 'Permission ID error';
+        }
+        default: {
+          throw e;
+        }
+      }
+    }
 
-export async function register(
-  email: string,
-  password: string,
-  firstName: string,
-  lastName: string,
-  phone: string
-) {
-  let user;
-  try {
-    user = await prisma.users.create({
-      data: {
-        firstname: firstName,
+    const { id } = user;
+
+    const access = await sign(
+      {
+        id,
         email,
-        lastname: lastName,
-        password: Buffer.from(Bun.MD5.hash(password).buffer).toString('hex'),
-        phone,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 /* 7 days */,
       },
-    });
-  } catch (e) {
-    throw (e as { code: string }).code === 'P2002' ? 'User already exists' : e;
-  }
+      process.env.JWT_ACCESS
+    );
 
-  const { id } = user;
+    const refresh = await sign(
+      {
+        id,
+        email,
+        exp: Math.floor(Date.now() / 1000) + 15 * 60 /* 15 minutes */,
+      },
+      process.env.JWT_ACCESS
+    );
 
-  const access = await sign(
-    {
-      id,
-      email,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 /* 7 days */,
-    },
-    process.env.JWT_ACCESS
-  );
+    const { id: _id, registered, permissionId, ...rest } = user;
 
-  const refresh = await sign(
-    {
-      id,
-      email,
-      exp: Math.floor(Date.now() / 1000) + 15 * 60 /* 15 minutes */,
-    },
-    process.env.JWT_ACCESS
-  );
-
-  return {
-    access,
-    refresh,
-    user,
-  };
-}
+    return {
+      access,
+      refresh,
+      user: {
+        ...rest,
+        firstName: rest.lastname,
+        lastName: rest.firstname,
+      },
+    };
+  });

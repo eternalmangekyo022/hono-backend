@@ -6,21 +6,23 @@ import * as usersModel from 'm/users.model';
 import { schemas } from 'schemas';
 import { z } from 'zod';
 
-export const register: Handler = async (c, next) => {
-  const body = await c.req.json();
+export const register: Handler = async (c) => {
+  const userBodySchema = schemas.user
+    .omit({ id: true })
+    .extend({ password: z.string() });
 
-  const { success, error } = schemas.user.omit({ id: true }).safeParse(body);
-  console.log(success, error);
+  type userBody<O extends { partial?: boolean } = {}> =
+    O['partial'] extends true
+      ? z.infer<ReturnType<typeof userBodySchema.partial>>
+      : z.infer<typeof userBodySchema>;
 
-  if (error) return c.json({ message: error }, 400);
+  const body = await c.req.json<userBody<{ partial: true }>>();
 
-  const { access, refresh, user } = await authModel.register(
-    body.email,
-    body.password,
-    body.firstName,
-    body.lastName,
-    body.phone
-  );
+  const result = schemas.user.omit({ id: true }).safeParse(body);
+  if (!result.success)
+    return c.json({ message: result.error || 'Invalid format' }, 400);
+
+  const { access, refresh, user } = await authModel.register(body as userBody);
 
   setCookie(c, 'access', access, {
     httpOnly: true,
@@ -39,7 +41,7 @@ export const register: Handler = async (c, next) => {
   return c.json(user);
 };
 
-export const mockToken: Handler = async (c, next) => {
+export const mockToken: Handler = async (c) => {
   if (c.req.header('Authorization')?.split(' ')[1] !== 'pankkixxx')
     return c.text('Unauthorized', 401);
   const access = await sign({ id: 12 }, process.env.JWT_ACCESS);
@@ -47,7 +49,7 @@ export const mockToken: Handler = async (c, next) => {
   return c.json({ access, refresh }, 200);
 };
 
-export const patchUser: Handler = async (c, next) => {
+export const patchUser: Handler = async (c) => {
   if (c.var.user.id.toString() !== c.req.param('id'))
     return c.json({ message: 'Unauthorized' }, 403);
   try {
@@ -65,4 +67,30 @@ export const patchUser: Handler = async (c, next) => {
   } catch (e) {
     return c.json({ message: e }, 400);
   }
+};
+
+export const login: Handler = async (c) => {
+  const loginBodySchema = z.object({
+    email: z.string(),
+    password: z.string(),
+  });
+
+  type bodySchema<T extends { partial?: boolean } = {}> = z.infer<
+    T['partial'] extends true
+      ? ReturnType<typeof loginBodySchema.partial>
+      : typeof loginBodySchema
+  >;
+
+  const body = await c.req.json<bodySchema<{ partial: true }>>();
+
+  const { success, data } = loginBodySchema.safeParse(body);
+  if (!success) {
+    return c.json(
+      {
+        message: 'The body provided had wrong format.',
+      },
+      400
+    );
+  }
+  return c.json(await authModel.login(data.email, data.password));
 };

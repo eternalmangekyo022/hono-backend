@@ -13,16 +13,17 @@ const axios = (withCookie = false) => {
   });
 };
 
-describe('first test', async () => {
+describe('auth test', async () => {
   it('should auth', async () => {
     const { status } = await axios(true).patch('/auth/users/12', {
       firstName: 'byaaa',
     });
     expect(status).toBe(200);
   });
+
   it('should not auth', async () => {
     try {
-      const { status } = await axios(false).patch('/auth/users/12', {
+      await axios(false).patch('/auth/users/12', {
         firstName: 'byaaa',
       });
     } catch (e) {
